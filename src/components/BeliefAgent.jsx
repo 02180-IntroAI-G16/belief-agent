@@ -8,7 +8,7 @@ export default function BeliefAgent() {
   const [beliefBase, setBeliefBase] = useState(() => {
     const stored = localStorage.getItem("beliefBase");
     return stored ? JSON.parse(stored) : [];
-  }); 
+  });
   const [revisionSteps, setRevisionSteps] = useState([]);
 
   useEffect(() => {
@@ -20,6 +20,7 @@ export default function BeliefAgent() {
       beliefBase,
       newBelief
     );
+
     setBeliefBase(updatedBeliefs);
     setRevisionSteps(steps);
   };
