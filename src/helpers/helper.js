@@ -1,3 +1,11 @@
+// Returns true iff `beliefBase` logically entails `formula`
+export function entails(beliefBase, formula) {
+  // Build a new base: all beliefs + the negation of the target formula
+  const testBase = [...beliefBase, `¬(${formula})`];
+  // If that augmented base is inconsistent, then entailment holds
+  return !isConsistent(testBase);
+}
+
 // === Evaluate Logical Formula ===
 export function evaluateFormula(formula, assignment) {
   formula = formula.trim();
@@ -140,7 +148,7 @@ export const reviseBeliefBase = (beliefBase, newBelief) => {
   );
 
   // Step 3: Check if adding the new belief causes inconsistency
-  if (isConsistent(updatedBeliefs)) {
+  if (entails(updatedBeliefs)) {
     steps.push(
       <h6 className="bg-green-300 p-2 rounded text-md">
         No inconsistency, belief base updated successfully.
