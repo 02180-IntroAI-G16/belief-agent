@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import BeliefInput from "./BeliefInput";
 import CurrentBeliefBase from "./CurrentBeliefBase";
 import RevisonSteps from "./RevisonSteps";
-import { reviseBeliefBase } from "../helpers/helper";
+import { calculateBeliefBase } from "../helpers/helper";
 
 export default function BeliefAgent() {
   const [beliefBase, setBeliefBase] = useState(() => {
     const stored = localStorage.getItem("beliefBase");
-    return stored ? JSON.parse(stored) : [];
+    return stored ? JSON.parse(stored) : ["A", "B", "C"];
   });
   const [revisionSteps, setRevisionSteps] = useState([]);
 
@@ -16,7 +16,7 @@ export default function BeliefAgent() {
   }, [beliefBase]);
 
   const addBelief = (newBelief) => {
-    const { updatedBeliefs, steps = [] } = reviseBeliefBase(
+    const { updatedBeliefs, steps = [] } = calculateBeliefBase(
       beliefBase,
       newBelief
     );

@@ -1,137 +1,82 @@
-// Returns true iff `beliefBase` logically entails `formula`
-export function entails(beliefBase, formula) {
-  // Build a new base: all beliefs + the negation of the target formula
+export function isEntailed(beliefBase, formula) {
+  const negatedFormula = negateBelief(formula);
+  const baseClauses = [];
+  
+  beliefBase.forEach(belief => {
+    const clauses = beliefToClauses(belief);
+    baseClauses.push(...clauses);
+  });
 
-  const newFormula = /^[A-Z]$/.test(formula) ? `¬${formula}` : `¬(${formula})`;
-  const testBase = [...beliefBase, newFormula];
-  // If that augmented base is inconsistent, then entailment holds
-  return !isConsistent(testBase);
+  const negatedFormulaClauses = beliefToClauses(negatedFormula);
+  const allClauses = [...baseClauses, ...negatedFormulaClauses];
+
+  return !isConsistent(allClauses);
 }
 
-// === Evaluate Logical Formula ===
-export function evaluateFormula(formula, assignment) {
-  formula = formula.trim();
 
-  // Atomic proposition
-  if (/^[A-Z]$/.test(formula)) {
-    return assignment[formula];
+export const negateBelief = (belief) => {
+  if (belief.startsWith("¬")) {
+    return belief.slice(1);
+  } else {
+    return `¬${belief}`;
   }
+};
 
-  // Negation
-  if (formula.startsWith("¬")) {
-    return !evaluateFormula(formula.slice(1), assignment);
+export const isComplementary = (atom1, atom2) => {
+  return atom1 === negateBelief(atom2);
+}
+
+export const resolveClauses = (clause1, clause2) => {
+  for (let atom1 of clause1) {
+    for (let atom2 of clause2) {
+      if (isComplementary(atom1, atom2)) {
+        const newBelief = [
+          ...clause1.filter(a => a !== atom1),
+          ...clause2.filter(a => a !== atom2),
+        ];
+        // Remove duplicates
+        return [...new Set(newBelief)];
+      }
+    }
   }
+  return null;
+}
 
-  // Remove outer parentheses
-  if (formula.startsWith("(") && formula.endsWith(")")) {
-    formula = formula.slice(1, -1);
-  }
+function isConsistent(allClauses) {
+  let changed = true;
+  while (changed) {
+    changed = false;
 
-  const operators = ["↔", "→", "∨", "∧"];
+    for (let i = 0; i < allClauses.length; i++) {
+      for (let j = i + 1; j < allClauses.length; j++) {
+        const resolvent = resolveClauses(allClauses[i], allClauses[j]);
+        if (resolvent) {
+          if (resolvent.length === 0) {
+            return false; // contradiction found
+          }
 
-  for (let op of operators) {
-    let depth = 0;
-    for (let i = 0; i < formula.length; i++) {
-      if (formula[i] === "(") depth++;
-      if (formula[i] === ")") depth--;
-      if (depth === 0 && formula[i] === op) {
-        const left = formula.slice(0, i);
-        const right = formula.slice(i + 1);
-        switch (op) {
-          case "∧":
-            return (
-              evaluateFormula(left, assignment) &&
-              evaluateFormula(right, assignment)
-            );
-          case "∨":
-            return (
-              evaluateFormula(left, assignment) ||
-              evaluateFormula(right, assignment)
-            );
-          case "→":
-            return (
-              !evaluateFormula(left, assignment) ||
-              evaluateFormula(right, assignment)
-            );
-          case "↔":
-            return (
-              evaluateFormula(left, assignment) ===
-              evaluateFormula(right, assignment)
-            );
-          default:
-            return false;
+          // Check if this resolvent is new
+          const alreadyExists = allClauses.some(
+            clause => clause.length === resolvent.length &&
+                      clause.every(lit => resolvent.includes(lit))
+          );
+          if (!alreadyExists) {
+            allClauses.push(resolvent);
+            changed = true;
+          }
         }
       }
     }
   }
 
-  return false;
+  return true; // no contradiction
 }
 
-// === Get Unique Atoms from Belief Base ===
-export function getUniqueAtoms(beliefs) {
-  const atoms = new Set();
-  beliefs.forEach((f) => {
-    const matches = f.match(/[A-Z]/g);
-    if (matches) matches.forEach((m) => atoms.add(m));
-  });
-  return Array.from(atoms);
-}
-
-// === Generate All Possible Truth Assignments ===
-export function generateTruthAssignments(atoms) {
-  const results = [];
-  const total = 1 << atoms.length;
-  for (let i = 0; i < total; i++) {
-    const assignment = {};
-    atoms.forEach((atom, index) => {
-      assignment[atom] = !!(i & (1 << index));
-    });
-    results.push(assignment);
-  }
-  return results;
-}
-
-// === Check Belief Base Consistency ===
-export function isConsistent(beliefBase) {
-  const atoms = getUniqueAtoms(beliefBase);
-
-  const truthAssignments = generateTruthAssignments(atoms);
-
-  for (let assignment of truthAssignments) {
-    let allTrue = true;
-    for (let formula of beliefBase) {
-      if (!evaluateFormula(formula, assignment)) {
-        allTrue = false;
-        break;
-      }
-    }
-    if (allTrue) return true;
-  }
-
-  return false;
-}
-
-// === Contract Belief Base ===
-export const contractBeliefBase = (beliefBase, beliefToRemove) => {
-  return beliefBase.filter((b) => b !== beliefToRemove);
-};
-
-// === Expand Belief Base (Prevent Duplicate) ===
-export const expandBeliefBase = (beliefBase, newBelief) => {
-  if (beliefBase.includes(newBelief)) {
-    return beliefBase;
-  }
-  return [...beliefBase, newBelief];
-};
-
-// === AGM Revision Using Levi Identity: revise(p) = contract(¬p) + p ===
-export const reviseBeliefBase = (beliefBase, newBelief) => {
-  let updatedBeliefs = [...beliefBase];
+export const calculateBeliefBase = (beliefBase, newBelief) => {
   let steps = [];
+  let updatedBeliefs = [...beliefBase];
 
-  // Step 1: Check if the belief already exists in the belief base
-  if (updatedBeliefs.includes(newBelief)) {
+  if (beliefBase.includes(newBelief)) {
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
         Belief {newBelief} already exists. No revision needed.
@@ -140,61 +85,114 @@ export const reviseBeliefBase = (beliefBase, newBelief) => {
     return { updatedBeliefs, steps };
   }
 
-  // Step 3: Check if adding the new belief causes inconsistency
-  if (entails(updatedBeliefs, newBelief)) {
+  const clauses = [];
+  beliefBase.forEach(belief => {
+    const beliefClauses = beliefToClauses(belief);
+    clauses.push(...beliefClauses);
+  });
+
+  if (isEntailed(beliefBase, newBelief)) {
     steps.push(
-      <h6 className="bg-green-300 p-2 rounded text-md">
-        No inconsistency, belief base updated successfully.
+      <h6 className="bg-red-200 p-2 rounded text-md">
+        Belief {newBelief} is already entailed by the belief base.
       </h6>
     );
     return { updatedBeliefs, steps };
-  } else {
-    // Step 2: Expand the belief base by adding the new belief (check if it's already added)
-    updatedBeliefs = expandBeliefBase(updatedBeliefs, newBelief);
+  }
+  const newBeliefClauses = beliefToClauses(newBelief);
+  const allClauses = [...clauses, ...newBeliefClauses];
+
+  if (isConsistent(allClauses)) {
     steps.push(
       <h6 className="bg-green-200 p-2 rounded text-md">
-        Expanded belief base with new belief: {newBelief}
+        No inconsistency detected, belief base updated successfully.
       </h6>
     );
-    // Step 4: If inconsistent, try contracting by removing conflicting beliefs
+    updatedBeliefs.push(newBelief);
+  } else {
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
         Adding {newBelief} causes inconsistency. Trying to resolve...
       </h6>
     );
 
-    let found = false;
-    // Try to remove minimal beliefs to resolve inconsistency
-    for (let i = 0; i < updatedBeliefs.length; i++) {
-      const beliefToRemove = updatedBeliefs[i];
-      const contractedBase = contractBeliefBase(updatedBeliefs, beliefToRemove);
+    // Try to remove beliefs one by one to resolve the contradiction
+    let beliefsToTry = [...updatedBeliefs];
+    for (let belief of beliefsToTry) {
+      //  Create a new belief base without that belief
+      const tempBeliefs = updatedBeliefs.filter(b => b !== belief);
 
-      if (isConsistent(contractedBase)) {
-        // Successfully resolved inconsistency
-        updatedBeliefs = [...contractedBase];
+      const tempClauses = [];
+      tempBeliefs.forEach(b => {
+        tempClauses.push(...beliefToClauses(b));
+      });
+      const tempAllClauses = [...tempClauses, ...beliefToClauses(newBelief)];
+
+      if (isConsistent(tempAllClauses)) {
         steps.push(
-          <h6 className="bg-sky-200 p-2 rounded text-md">
-            Removed conflicting belief: {beliefToRemove}
+          <h6 className="bg-yellow-200 p-2 rounded text-md">
+            Removed {belief} to restore consistency.
           </h6>
         );
-        steps.push(
-          <h6 className="bg-green-200 p-2 rounded text-md">
-            Added new belief: {newBelief}
-          </h6>
-        );
-        found = true;
-        break;
+        updatedBeliefs = tempBeliefs;
+        break; 
       }
     }
 
-    if (!found) {
-      steps.push(
-        <h6 className="bg-yellow-200 p-2 rounded text-md">
-          Could not resolve inconsistency. New belief not added.
-        </h6>
-      );
-    }
+    // Add the new belief after removing inconsistent belief
+    updatedBeliefs.push(newBelief);
+    steps.push(
+      <h6 className="bg-green-200 p-2 rounded text-md">
+        Added {newBelief} to the belief base.
+      </h6>
+    );
   }
 
   return { updatedBeliefs, steps };
 };
+
+
+
+// Converts a simple belief into CNF-like clauses
+export function beliefToClauses(belief) {
+  belief = belief.trim();
+
+  // Atomic belief (single atom)
+  if (/^[A-Z]$/.test(belief)) {
+    return [[belief]];
+  }
+
+  // Negated atomic
+  if (/^¬[A-Z]$/.test(belief)) {
+    return [[belief]];
+  }
+
+  // Parentheses removal
+  if (belief.startsWith("(") && belief.endsWith(")")) {
+    belief = belief.slice(1, -1);
+  }
+
+  // Handle AND
+  if (belief.includes("∧")) {
+    return belief.split("∧").map(b => [b.trim()]);
+  }
+
+  // Handle OR
+  if (belief.includes("∨")) {
+    return [belief.split("∨").map(b => b.trim())];
+  }
+
+  // Handle IMPLICATION
+  if (belief.includes("→")) {
+    const [left, right] = belief.split("→").map(b => b.trim());
+    return [[`¬${left}`, right]];
+  }
+
+  // Handle BICONDITIONAL
+  if (belief.includes("↔")) {
+    const [left, right] = belief.split("↔").map(b => b.trim());
+    return [[`¬${left}`, right], [left, `¬${right}`]];
+  }
+
+  return [[belief]]; // fallback
+}
