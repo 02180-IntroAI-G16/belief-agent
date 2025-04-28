@@ -4,12 +4,8 @@ const propositionalSymbols = [
   { symbol: "¬", name: "Negation" },
   { symbol: "∧", name: "Conjunction" },
   { symbol: "∨", name: "Disjunction" },
-  // { symbol: "→", name: "Implication" },
-  // { symbol: "↔", name: "Biconditional" },
-  // { symbol: "⊤", name: "Tautology" },
-  // { symbol: "⊥", name: "Contradiction" },
-  // { symbol: "⊢", name: "Entailment" },
-  // { symbol: "⊨", name: "Semantic Entailment" },
+  { symbol: "→", name: "Implication" },
+  { symbol: "↔", name: "Biconditional" },
 ];
 
 const validSymbols = [

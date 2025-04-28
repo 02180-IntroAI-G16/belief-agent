@@ -1,3 +1,13 @@
+// Returns true iff `beliefBase` logically entails `formula`
+export function entails(beliefBase, formula) {
+  // Build a new base: all beliefs + the negation of the target formula
+
+  const newFormula = /^[A-Z]$/.test(formula) ? `¬${formula}` : `¬(${formula})`;
+  const testBase = [...beliefBase, newFormula];
+  // If that augmented base is inconsistent, then entailment holds
+  return !isConsistent(testBase);
+}
+
 // === Evaluate Logical Formula ===
 export function evaluateFormula(formula, assignment) {
   formula = formula.trim();
@@ -130,17 +140,8 @@ export const reviseBeliefBase = (beliefBase, newBelief) => {
     return { updatedBeliefs, steps };
   }
 
-  // Step 2: Expand the belief base by adding the new belief (check if it's already added)
-  updatedBeliefs = expandBeliefBase(updatedBeliefs, newBelief);
-
-  steps.push(
-    <h6 className="bg-green-200 p-2 rounded text-md">
-      Expanded belief base with new belief: {newBelief}
-    </h6>
-  );
-
   // Step 3: Check if adding the new belief causes inconsistency
-  if (isConsistent(updatedBeliefs)) {
+  if (entails(updatedBeliefs, newBelief)) {
     steps.push(
       <h6 className="bg-green-300 p-2 rounded text-md">
         No inconsistency, belief base updated successfully.
@@ -148,6 +149,13 @@ export const reviseBeliefBase = (beliefBase, newBelief) => {
     );
     return { updatedBeliefs, steps };
   } else {
+    // Step 2: Expand the belief base by adding the new belief (check if it's already added)
+    updatedBeliefs = expandBeliefBase(updatedBeliefs, newBelief);
+    steps.push(
+      <h6 className="bg-green-200 p-2 rounded text-md">
+        Expanded belief base with new belief: {newBelief}
+      </h6>
+    );
     // Step 4: If inconsistent, try contracting by removing conflicting beliefs
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
