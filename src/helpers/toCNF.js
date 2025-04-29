@@ -75,20 +75,92 @@ export default function toCNF(expression) {
     return tempExpr;
   }
 
-  // Helper to move NOT inward using De Morgan's Laws
-
-  function needsNOTResolvement(expr) {
-    return expr.match(/¬\(\s*¬\s*([A-Z])\s*\)/g);
+  // Helper to tokenize the expression
+  function tokenize(input) {
+    return input.match(/¬|∧|∨|\(|\)|[A-Z]+/g);
   }
 
-  function moveNotInward(expr) {
-    let tempExpr = expr;
+  // Parse the tokens into an Abstract Syntax Tree (AST)
+  function parse(tokens) {
+    let pos = 0;
 
-    while (needsNOTResolvement(tempExpr)) {
-      console.log({ tempExpr });
+    function parseExpr() {
+      let left = parseTerm();
+      while (
+        pos < tokens.length &&
+        (tokens[pos] === "∧" || tokens[pos] === "∨")
+      ) {
+        const op = tokens[pos++];
+        const right = parseTerm();
+        left = { type: op === "∧" ? "and" : "or", children: [left, right] };
+      }
+      return left;
     }
 
-    return expr;
+    function parseTerm() {
+      if (tokens[pos] === "¬") {
+        pos++;
+        return { type: "not", children: [parseTerm()] };
+      }
+      if (tokens[pos] === "(") {
+        pos++;
+        const expr = parseExpr();
+        if (tokens[pos] !== ")") throw new Error("Missing closing parenthesis");
+        pos++;
+        return expr;
+      }
+      return { type: "var", value: tokens[pos++] };
+    }
+
+    return parseExpr();
+  }
+
+  // Move NOTs inward using De Morgan's Laws
+  function moveNotInward(ast) {
+    if (ast.type === "not") {
+      const inner = moveNotInward(ast.children[0]);
+
+      // Apply rule ¬(¬A) → A
+      if (inner.type === "not") {
+        return moveNotInward(inner.children[0]);
+      }
+
+      // Apply De Morgan's Law for AND and OR
+      if (inner.type === "and") {
+        return {
+          type: "or",
+          children: inner.children.map((c) =>
+            moveNotInward({ type: "not", children: [c] })
+          ),
+        }; // ¬(A∧B) → (¬A ∨ ¬B)
+      }
+      if (inner.type === "or") {
+        return {
+          type: "and",
+          children: inner.children.map((c) =>
+            moveNotInward({ type: "not", children: [c] })
+          ),
+        }; // ¬(A∨B) → (¬A ∧ ¬B)
+      }
+
+      return { type: "not", children: [inner] }; // Keep ¬ for other cases
+    }
+
+    if (ast.type === "and" || ast.type === "or") {
+      return { type: ast.type, children: ast.children.map(moveNotInward) };
+    }
+
+    return ast;
+  }
+
+  // Convert AST back to string representation
+  function exprToString(ast) {
+    if (ast.type === "var") return ast.value;
+    if (ast.type === "not") return `¬${exprToString(ast.children[0])}`;
+    const op = ast.type === "and" ? "∧" : "∨";
+    return `(${exprToString(ast.children[0])}${op}${exprToString(
+      ast.children[1]
+    )})`;
   }
 
   // Helper to distribute OR over AND
@@ -116,14 +188,28 @@ export default function toCNF(expression) {
     return expr;
   }
 
+  function removeUnnecessaryBrackets(expr) {
+    const unnecessaryBracketsPattern = /\(([^()]+)\)/g;
+
+    while (unnecessaryBracketsPattern.test(expr)) {
+      expr = expr.replace(unnecessaryBracketsPattern, "$1");
+    }
+
+    return expr;
+  }
+
   // Step 1: Eliminate implications
   expression = eliminateImplicationsAndBiconditionals(expression);
-
+  console.log({ expression1: expression });
   // Step 2: Move NOTs inward
-  expression = moveNotInward(expression);
+  const tokens = tokenize(expression);
+  const ast = parse(tokens);
+  expression = exprToString(moveNotInward(ast));
+  console.log({ expression2: expression });
 
   // Step 3: Distribute OR over AND
   expression = distributeOrOverAnd(expression);
+  console.log({ expression3: expression });
 
-  return expression;
+  return removeUnnecessaryBrackets(expression);
 }
