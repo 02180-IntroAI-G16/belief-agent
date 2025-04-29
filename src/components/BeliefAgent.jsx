@@ -3,6 +3,7 @@ import BeliefInput from "./BeliefInput";
 import CurrentBeliefBase from "./CurrentBeliefBase";
 import RevisonSteps from "./RevisonSteps";
 import { calculateBeliefBase } from "../helpers/helper";
+import toCNF from "../helpers/toCNF";
 
 export default function BeliefAgent() {
   const [beliefBase, setBeliefBase] = useState(() => {
@@ -16,6 +17,7 @@ export default function BeliefAgent() {
   }, [beliefBase]);
 
   const addBelief = (newBelief) => {
+    toCNF(newBelief);
     const { updatedBeliefs, steps = [] } = calculateBeliefBase(
       beliefBase,
       newBelief

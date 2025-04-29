@@ -182,20 +182,6 @@ export function beliefToClauses(belief) {
   if (belief.includes("∨")) {
     return [belief.split("∨").map(b => b.trim())];
   }
-
-  // Handle IMPLICATION
-  if (belief.includes("→")) {
-    const [left, right] = belief.split("→").map(b => b.trim());
-    return [[`¬${left}`, right]];
-  }
-
-  // Handle BICONDITIONAL
-  if (belief.includes("↔")) {
-    const [left, right] = belief.split("↔").map(b => b.trim());
-    return [[`¬${left}`, right], [left, `¬${right}`]];
-  }
-
-  return [[belief]]; // fallback
 }
 
 /**
