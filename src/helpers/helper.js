@@ -116,8 +116,11 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
       </h6>
     );
 
-    // Try to remove beliefs one by one to resolve the contradiction
-    let beliefsToTry = [...updatedBeliefs];
+    // Remove least entrenched beliefs first (lower score)
+    let beliefsToTry = [...updatedBeliefs].sort(
+      (a, b) => logicalStrengthEntrenchment(a) - logicalStrengthEntrenchment(b)
+    );
+
     for (let belief of beliefsToTry) {
       //  Create a new belief base without that belief
       const tempBeliefs = updatedBeliefs.filter(b => b !== belief);
@@ -150,8 +153,6 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
 
   return { updatedBeliefs, steps };
 };
-
-
 
 // Converts a simple belief into CNF-like clauses
 export function beliefToClauses(belief) {
@@ -195,4 +196,16 @@ export function beliefToClauses(belief) {
   }
 
   return [[belief]]; // fallback
+}
+
+/**
+ * Logical Strength Entrenchment:
+ * Beliefs with fewer literals in their CNF clauses are more entrenched.
+ * Returns 1 / maxClauseLength, so atomic formulas (length=1) yield 1.0,
+ * disjunctions (length>1) yield smaller values.
+ */
+export function logicalStrengthEntrenchment(belief) {
+  const clauses = beliefToClauses(belief);
+  const maxLength = Math.max(...clauses.map(c => c.length));
+  return 1 / maxLength;
 }
