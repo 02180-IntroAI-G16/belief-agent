@@ -32,53 +32,62 @@ function extractImplicationAtIndex(expression, index, symbol = "→") {
   return `${leftSide}${symbol}${rightSide}`;
 }
 
+function resolveImplication(expression, symbol) {
+  const [left, right] = expression.split(symbol);
+
+  return symbol === "→"
+    ? `¬${left.startsWith("¬") ? `(${left})` : left}∨${right}`
+    : `((¬${left.startsWith("¬") ? `(${left})` : left}∨${right})∧(¬${
+        right.startsWith("¬") ? `(${right})` : right
+      }∨${left}))`;
+}
+
 export default function toCNF(expression) {
-  function processImplication(expression, symbol) {
-    const [left, right] = expression.split(symbol);
-    return symbol === "→"
-      ? `¬${left}∨${right}`
-      : `((¬${left}∨${right})∧(¬${right}∨${left}))`;
-  }
-
   function eliminateImplicationsAndBiconditionals(expr) {
-    let exppp = expr;
+    let tempExpr = expr;
 
-    if (!exppp.includes("→") && !exppp.includes("↔")) {
-      return exppp;
+    if (!tempExpr.includes("→") && !tempExpr.includes("↔")) {
+      return tempExpr;
     }
 
-    // Process all implications (→)
-    while (exppp.includes("→")) {
-      let index = exppp.indexOf("→");
-
-      const implication = extractImplicationAtIndex(exppp, index, "→");
-      let updatedExpr = processImplication(implication, "→");
-
-      exppp = exppp.replace(implication, updatedExpr);
+    while (tempExpr.includes("→")) {
+      let implicationIndex = tempExpr.indexOf("→");
+      const implicationSegment = extractImplicationAtIndex(
+        tempExpr,
+        implicationIndex,
+        "→"
+      );
+      let resolvedImplication = resolveImplication(implicationSegment, "→");
+      tempExpr = tempExpr.replace(implicationSegment, resolvedImplication);
     }
 
-    // Process all biconditionals (↔)
-    while (exppp.includes("↔")) {
-      let index = exppp.indexOf("↔");
-
-      const biconditional = extractImplicationAtIndex(exppp, index, "↔");
-      let updatedExpr = processImplication(biconditional, "↔");
-
-      exppp = exppp.replace(biconditional, updatedExpr);
+    while (tempExpr.includes("↔")) {
+      let biconditionalIndex = tempExpr.indexOf("↔");
+      const biconditionalSegment = extractImplicationAtIndex(
+        tempExpr,
+        biconditionalIndex,
+        "↔"
+      );
+      let resolvedBiconditional = resolveImplication(biconditionalSegment, "↔");
+      tempExpr = tempExpr.replace(biconditionalSegment, resolvedBiconditional);
     }
 
-    return exppp;
+    return tempExpr;
   }
 
   // Helper to move NOT inward using De Morgan's Laws
+
+  function needsNOTResolvement(expr) {
+    return expr.match(/¬\(\s*¬\s*([A-Z])\s*\)/g);
+  }
+
   function moveNotInward(expr) {
-    let prev;
-    do {
-      prev = expr;
-      expr = expr.replace(/¬\(([^()]+)∧([^()]+)\)/g, "(¬$1∨¬$2)");
-      expr = expr.replace(/¬\(([^()]+)∨([^()]+)\)/g, "(¬$1∧¬$2)");
-      expr = expr.replace(/¬¬([^()]+)/g, "$1");
-    } while (expr !== prev);
+    let tempExpr = expr;
+
+    while (needsNOTResolvement(tempExpr)) {
+      console.log({ tempExpr });
+    }
+
     return expr;
   }
 
