@@ -37,9 +37,9 @@ function resolveImplication(expression, symbol) {
 
   return symbol === "→"
     ? `¬${left.startsWith("¬") ? `(${left})` : left}∨${right}`
-    : `((¬${left.startsWith("¬") ? `(${left})` : left}∨${right})∧(¬${
+    : `(¬${left.startsWith("¬") ? `(${left})` : left}∨${right})∧(¬${
         right.startsWith("¬") ? `(${right})` : right
-      }∨${left}))`;
+      }∨${left})`;
 }
 
 function eliminateImplicationsAndBiconditionals(expr) {
@@ -69,6 +69,7 @@ function eliminateImplicationsAndBiconditionals(expr) {
     );
     let resolvedBiconditional = resolveImplication(biconditionalSegment, "↔");
     tempExpr = tempExpr.replace(biconditionalSegment, resolvedBiconditional);
+    console.log({ resolvedBiconditional, biconditionalSegment, tempExpr });
   }
 
   return tempExpr;
@@ -79,6 +80,7 @@ function tokenize(input) {
   return input.match(/¬|∧|∨|\(|\)|[A-Z]+/g);
 }
 
+// create Abstract symtax tree
 function parseToAST(tokens) {
   let pos = 0;
 
@@ -111,6 +113,16 @@ function parseToAST(tokens) {
   }
 
   return parseExpr();
+}
+
+// Convert AST back to string representation
+function exprToString(ast) {
+  if (ast.type === "var") return ast.value;
+  if (ast.type === "not") return `¬${exprToString(ast.children[0])}`;
+  const op = ast.type === "and" ? "∧" : "∨";
+  return `(${exprToString(ast.children[0])}${op}${exprToString(
+    ast.children[1]
+  )})`;
 }
 
 // Move NOTs inward using De Morgan's Laws
@@ -151,46 +163,59 @@ function moveNotInward(ast) {
   return ast;
 }
 
-// Convert AST back to string representation
-function exprToString(ast) {
-  if (ast.type === "var") return ast.value;
-  if (ast.type === "not") return `¬${exprToString(ast.children[0])}`;
-  const op = ast.type === "and" ? "∧" : "∨";
-  return `(${exprToString(ast.children[0])}${op}${exprToString(
-    ast.children[1]
-  )})`;
-}
-
 // Helper to distribute OR over AND
 function distributeOrOverAnd(expr) {
-  const orAnd = /\(([^()]+)\)∨\(([^()]+)\)/;
-  let match;
-  while ((match = expr.match(orAnd))) {
-    const [_, left, right] = match;
-    const leftParts = left.split("∧");
-    const rightParts = right.split("∧");
-    if (leftParts.length > 1) {
-      expr = expr.replace(
-        match[0],
-        `(${leftParts.map((l) => `(${l}∨(${right}))`).join("∧")})`
-      );
-    } else if (rightParts.length > 1) {
-      expr = expr.replace(
-        match[0],
-        `(${rightParts.map((r) => `(${r}∨(${left}))`).join("∧")})`
-      );
-    } else {
-      expr = expr.replace(match[0], `(${left}∨${right})`);
+  const tokens = tokenize(expr);
+  let ast = parseToAST(tokens);
+
+  ast = distributeOrOverAndInAST(ast);
+
+  return exprToString(ast);
+}
+
+function distributeOrOverAndInAST(ast) {
+  if (ast.type === "var") return ast;
+  if (ast.type === "not")
+    return {
+      type: "not",
+      children: [distributeOrOverAndInAST(ast.children[0])],
+    };
+
+  // Distribute in children first
+  const left = distributeOrOverAndInAST(ast.children[0]);
+  const right = distributeOrOverAndInAST(ast.children[1]);
+
+  if (ast.type === "or") {
+    // Case 1: A ∨ (B ∧ C) → (A ∨ B) ∧ (A ∨ C)
+    if (right.type === "and") {
+      return {
+        type: "and",
+        children: [
+          { type: "or", children: [left, right.children[0]] },
+          { type: "or", children: [left, right.children[1]] },
+        ],
+      };
+    }
+    // Case 2: (A ∧ B) ∨ C → (A ∨ C) ∧ (B ∨ C)
+    if (left.type === "and") {
+      return {
+        type: "and",
+        children: [
+          { type: "or", children: [left.children[0], right] },
+          { type: "or", children: [left.children[1], right] },
+        ],
+      };
     }
   }
-  return expr;
+
+  // If no distribution needed, just return the node with distributed children
+  return { type: ast.type, children: [left, right] };
 }
 
 function removeUnnecessaryBrackets(expr) {
   const tokens = tokenize(expr);
   const ast = parseToAST(tokens);
 
-  // Then, convert back to string with minimal brackets
   return astToStringWithMinimalBrackets(ast);
 }
 
