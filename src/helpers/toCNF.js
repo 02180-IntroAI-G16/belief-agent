@@ -69,7 +69,6 @@ function eliminateImplicationsAndBiconditionals(expr) {
     );
     let resolvedBiconditional = resolveImplication(biconditionalSegment, "↔");
     tempExpr = tempExpr.replace(biconditionalSegment, resolvedBiconditional);
-    console.log({ resolvedBiconditional, biconditionalSegment, tempExpr });
   }
 
   return tempExpr;
@@ -164,7 +163,6 @@ function moveNotInward(ast) {
 }
 
 // Helper to distribute OR over AND
-// TODO:doesnot work for ((¬P∧¬Q)∨(R∧¬S)) so needs improvemnt
 function distributeOrOverAnd(expr) {
   const tokens = tokenize(expr);
   let ast = parseToAST(tokens);
@@ -194,8 +192,14 @@ function distributeOrOverAndInAST(ast) {
       return {
         type: "and",
         children: [
-          { type: "or", children: [left.children[0], right] },
-          { type: "or", children: [left.children[1], right] },
+          distributeOrOverAndInAST({
+            type: "or",
+            children: [left.children[0], right],
+          }),
+          distributeOrOverAndInAST({
+            type: "or",
+            children: [left.children[1], right],
+          }),
         ],
       };
     }
@@ -204,26 +208,37 @@ function distributeOrOverAndInAST(ast) {
       return {
         type: "and",
         children: [
-          { type: "or", children: [left, right.children[0]] },
-          { type: "or", children: [left, right.children[1]] },
+          distributeOrOverAndInAST({
+            type: "or",
+            children: [left, right.children[0]],
+          }),
+          distributeOrOverAndInAST({
+            type: "or",
+            children: [left, right.children[1]],
+          }),
         ],
       };
     }
     // Case 3: (A ∧ B) ∨ (C ∧ D) → (A ∨ C) ∧ (A ∨ D) ∧ (B ∨ C) ∧ (B ∨ D)
     else if (left.type === "and" && right.type === "and") {
-      const leftDistributions = left.children.map((lChild) => ({
-        type: "and",
-        children: right.children.map((rChild) => ({
-          type: "or",
-          children: [lChild, rChild],
-        })),
-      }));
-
-      // Flatten the structure
-      return {
-        type: "and",
-        children: leftDistributions.flatMap((x) => x.children),
-      };
+      const distributed = [];
+      for (const lChild of left.children) {
+        for (const rChild of right.children) {
+          distributed.push({
+            type: "or",
+            children: [lChild, rChild],
+          });
+        }
+      }
+      // Combine all with AND
+      let result = distributed[0];
+      for (let i = 1; i < distributed.length; i++) {
+        result = {
+          type: "and",
+          children: [result, distributed[i]],
+        };
+      }
+      return result;
     }
   }
 
