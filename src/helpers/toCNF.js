@@ -164,6 +164,7 @@ function moveNotInward(ast) {
 }
 
 // Helper to distribute OR over AND
+// TODO:doesnot work for ((¬P∧¬Q)∨(R∧¬S)) so needs improvemnt
 function distributeOrOverAnd(expr) {
   const tokens = tokenize(expr);
   let ast = parseToAST(tokens);
