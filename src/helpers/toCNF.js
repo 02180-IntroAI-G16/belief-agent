@@ -174,29 +174,21 @@ function distributeOrOverAnd(expr) {
 }
 
 function distributeOrOverAndInAST(ast) {
+  // Base cases
   if (ast.type === "var") return ast;
-  if (ast.type === "not")
+  if (ast.type === "not") {
     return {
       type: "not",
       children: [distributeOrOverAndInAST(ast.children[0])],
     };
+  }
 
-  // Distribute in children first
+  // First recursively distribute in children
   const left = distributeOrOverAndInAST(ast.children[0]);
   const right = distributeOrOverAndInAST(ast.children[1]);
 
   if (ast.type === "or") {
-    // Case 1: A ∨ (B ∧ C) → (A ∨ B) ∧ (A ∨ C)
-    if (right.type === "and") {
-      return {
-        type: "and",
-        children: [
-          { type: "or", children: [left, right.children[0]] },
-          { type: "or", children: [left, right.children[1]] },
-        ],
-      };
-    }
-    // Case 2: (A ∧ B) ∨ C → (A ∨ C) ∧ (B ∨ C)
+    // Case 1: (A ∧ B) ∨ C → (A ∨ C) ∧ (B ∨ C)
     if (left.type === "and") {
       return {
         type: "and",
@@ -206,9 +198,35 @@ function distributeOrOverAndInAST(ast) {
         ],
       };
     }
+    // Case 2: A ∨ (B ∧ C) → (A ∨ B) ∧ (A ∨ C)
+    else if (right.type === "and") {
+      return {
+        type: "and",
+        children: [
+          { type: "or", children: [left, right.children[0]] },
+          { type: "or", children: [left, right.children[1]] },
+        ],
+      };
+    }
+    // Case 3: (A ∧ B) ∨ (C ∧ D) → (A ∨ C) ∧ (A ∨ D) ∧ (B ∨ C) ∧ (B ∨ D)
+    else if (left.type === "and" && right.type === "and") {
+      const leftDistributions = left.children.map((lChild) => ({
+        type: "and",
+        children: right.children.map((rChild) => ({
+          type: "or",
+          children: [lChild, rChild],
+        })),
+      }));
+
+      // Flatten the structure
+      return {
+        type: "and",
+        children: leftDistributions.flatMap((x) => x.children),
+      };
+    }
   }
 
-  // If no distribution needed, just return the node with distributed children
+  // For AND nodes or non-distributable OR nodes
   return { type: ast.type, children: [left, right] };
 }
 
