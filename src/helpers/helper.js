@@ -3,8 +3,8 @@ import toCNF from "./toCNF";
 export function isEntailed(beliefBase, formula) {
   const negatedFormula = negateBelief(formula);
   const baseClauses = [];
-  
-  beliefBase.forEach(belief => {
+
+  beliefBase.forEach((belief) => {
     const clauses = cnfToClauses(belief);
     baseClauses.push(...clauses);
   });
@@ -15,10 +15,9 @@ export function isEntailed(beliefBase, formula) {
   return !isConsistent(allClauses);
 }
 
-
 export const negateBelief = (belief) => {
-    let negatedBelief = `¬(${belief})`;
-    return toCNF(negatedBelief);
+  let negatedBelief = `¬(${belief})`;
+  return toCNF(negatedBelief);
 };
 
 export const negateAtom = (atom) => {
@@ -31,15 +30,15 @@ export const negateAtom = (atom) => {
 
 export const isComplementary = (atom1, atom2) => {
   return atom1 === negateAtom(atom2);
-}
+};
 
 export const resolveClauses = (clause1, clause2) => {
   for (let atom1 of clause1) {
     for (let atom2 of clause2) {
       if (isComplementary(atom1, atom2)) {
         const newBelief = [
-          ...clause1.filter(a => a !== atom1),
-          ...clause2.filter(a => a !== atom2),
+          ...clause1.filter((a) => a !== atom1),
+          ...clause2.filter((a) => a !== atom2),
         ];
         // Remove duplicates
         return [...new Set(newBelief)];
@@ -47,7 +46,7 @@ export const resolveClauses = (clause1, clause2) => {
     }
   }
   return null;
-}
+};
 
 function isConsistent(allClauses) {
   let changed = true;
@@ -64,8 +63,9 @@ function isConsistent(allClauses) {
 
           // Check if this resolvent is new
           const alreadyExists = allClauses.some(
-            clause => clause.length === resolvent.length &&
-                      clause.every(lit => resolvent.includes(lit))
+            (clause) =>
+              clause.length === resolvent.length &&
+              clause.every((lit) => resolvent.includes(lit))
           );
           if (!alreadyExists) {
             allClauses.push(resolvent);
@@ -79,35 +79,45 @@ function isConsistent(allClauses) {
   return true; // no contradiction
 }
 
+const getBelief = (b) => b.map((be) => be.belief);
+
+const getCNF = (b) => b.map((be) => be.cnf);
+
 export const calculateBeliefBase = (beliefBase, newBelief) => {
   let steps = [];
-  let updatedBeliefs = [...beliefBase];
+  let updatedBeliefs = beliefBase.map((belief) => ({
+    cnf: toCNF(belief),
+    belief,
+  }));
+  let newBeliefInCNF = toCNF(newBelief);
 
-  if (beliefBase.includes(newBelief)) {
+  if (beliefBase.includes(newBeliefInCNF)) {
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
-        Belief {newBelief} already exists. No revision needed.
+        Belief {newBeliefInCNF} already exists. No revision needed.
       </h6>
     );
-    return { updatedBeliefs, steps };
+    return { updatedBeliefs: getBelief(updatedBeliefs), steps };
   }
 
   const clauses = [];
-  beliefBase.forEach(belief => {
-    const beliefClauses = cnfToClauses(belief);
-    clauses.push(...beliefClauses);
-  });
-  
-  if (isEntailed(beliefBase, newBelief)) {
+  updatedBeliefs
+    .map((b) => b.cnf)
+    .forEach((belief) => {
+      const beliefClauses = cnfToClauses(belief);
+      clauses.push(...beliefClauses);
+    });
+
+  if (isEntailed(getCNF(updatedBeliefs), newBeliefInCNF)) {
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
-        Belief {newBelief} is already entailed by the belief base.
+        Belief {newBeliefInCNF} is already entailed by the belief base.
       </h6>
     );
-    return { updatedBeliefs, steps };
+    return { updatedBeliefs: getBelief(updatedBeliefs), steps };
   }
 
-  const newBeliefClauses = cnfToClauses(newBelief);
+  const newBeliefClauses = cnfToClauses(newBeliefInCNF);
   const allClauses = [...clauses, ...newBeliefClauses];
 
   if (isConsistent(allClauses)) {
@@ -116,7 +126,7 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
         No inconsistency detected, belief base updated successfully.
       </h6>
     );
-    updatedBeliefs.push(newBelief);
+    updatedBeliefs.push({ belief: newBelief, cnf: newBeliefInCNF });
   } else {
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
@@ -125,20 +135,28 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
     );
 
     // Attempt to remove minimal sets of beliefs to restore consistency
-    const sortedBeliefs = [...updatedBeliefs].sort(
-      (a, b) => logicalStrengthEntrenchment(a) - logicalStrengthEntrenchment(b)
-    );
+    const sortedBeliefs = updatedBeliefs
+      .map((be) => be.cnf)
+      .sort(
+        (a, b) =>
+          logicalStrengthEntrenchment(a) - logicalStrengthEntrenchment(b)
+      );
 
     let resolved = false;
     for (let k = 1; k <= sortedBeliefs.length && !resolved; k++) {
       for (let combo of combinations(sortedBeliefs, k)) {
-        const tempBeliefs = updatedBeliefs.filter(b => !combo.includes(b));
+        const tempBeliefs = updatedBeliefs.filter(
+          (b) => !combo.includes(b.cnf)
+        );
         const tempClauses = [];
-        tempBeliefs.forEach(b => tempClauses.push(...cnfToClauses(b)));
-        const tempAllClauses = [...tempClauses, ...cnfToClauses(newBelief)];
+        tempBeliefs.forEach((b) => tempClauses.push(...cnfToClauses(b.cnf)));
+        const tempAllClauses = [
+          ...tempClauses,
+          ...cnfToClauses(newBeliefInCNF),
+        ];
         if (isConsistent(tempAllClauses)) {
           // Report each removed belief
-          combo.forEach(belief => {
+          combo.forEach((belief) => {
             steps.push(
               <h6 className="bg-yellow-200 p-2 rounded text-md">
                 Removed {belief} to restore consistency.
@@ -146,7 +164,8 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
             );
           });
           updatedBeliefs = tempBeliefs;
-          updatedBeliefs.push(newBelief);
+          updatedBeliefs.push({ belief: newBelief, cnf: newBeliefInCNF });
+          console.log({ updatedBeliefs });
           steps.push(
             <h6 className="bg-green-200 p-2 rounded text-md">
               Added {newBelief} to the belief base.
@@ -165,22 +184,18 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
       );
     }
   }
-  return { updatedBeliefs, steps };
+  return { updatedBeliefs: getBelief(updatedBeliefs), steps };
 };
 
 export function cnfToClauses(cnf) {
   const trimmed = cnf.trim();
-  return trimmed
-    .split(/\s*∧\s*/)
-    .map(conjunct => {
-      let clause = conjunct.trim();
-      if (clause.startsWith("(") && clause.endsWith(")")) {
-        clause = clause.slice(1, -1).trim();
-      }
-      return clause
-        .split(/\s*∨\s*/)
-        .map(literal => literal.trim());
-    });
+  return trimmed.split(/\s*∧\s*/).map((conjunct) => {
+    let clause = conjunct.trim();
+    if (clause.startsWith("(") && clause.endsWith(")")) {
+      clause = clause.slice(1, -1).trim();
+    }
+    return clause.split(/\s*∨\s*/).map((literal) => literal.trim());
+  });
 }
 
 /**
@@ -191,7 +206,7 @@ export function cnfToClauses(cnf) {
  */
 export function logicalStrengthEntrenchment(belief) {
   const clauses = cnfToClauses(belief);
-  const maxLength = Math.max(...clauses.map(c => c.length));
+  const maxLength = Math.max(...clauses.map((c) => c.length));
   return 1 / maxLength;
 }
 
