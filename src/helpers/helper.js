@@ -1,3 +1,5 @@
+import toCNF from "./toCNF";
+
 export function isEntailed(beliefBase, formula) {
   const negatedFormula = negateBelief(formula);
   const baseClauses = [];
@@ -15,15 +17,20 @@ export function isEntailed(beliefBase, formula) {
 
 
 export const negateBelief = (belief) => {
-  if (belief.startsWith("¬")) {
-    return belief.slice(1);
+    let negatedBelief = `¬(${belief})`;
+    return toCNF(negatedBelief);
+};
+
+export const negateAtom = (atom) => {
+  if (atom.startsWith("¬")) {
+    return atom.slice(1);
   } else {
-    return `¬${belief}`;
+    return `¬${atom}`;
   }
 };
 
 export const isComplementary = (atom1, atom2) => {
-  return atom1 === negateBelief(atom2);
+  return atom1 === negateAtom(atom2);
 }
 
 export const resolveClauses = (clause1, clause2) => {
@@ -91,14 +98,14 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
     clauses.push(...beliefClauses);
   });
   
-  // if (isEntailed(beliefBase, newBelief)) {
-  //   steps.push(
-  //     <h6 className="bg-red-200 p-2 rounded text-md">
-  //       Belief {newBelief} is already entailed by the belief base.
-  //     </h6>
-  //   );
-  //   return { updatedBeliefs, steps };
-  // }
+  if (isEntailed(beliefBase, newBelief)) {
+    steps.push(
+      <h6 className="bg-red-200 p-2 rounded text-md">
+        Belief {newBelief} is already entailed by the belief base.
+      </h6>
+    );
+    return { updatedBeliefs, steps };
+  }
 
   const newBeliefClauses = cnfToClauses(newBelief);
   const allClauses = [...clauses, ...newBeliefClauses];

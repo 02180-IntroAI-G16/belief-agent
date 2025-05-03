@@ -77,7 +77,9 @@ export default function toCNF(expression) {
       prev = expr;
       expr = expr.replace(/¬\(([^()]+)∧([^()]+)\)/g, "(¬$1∨¬$2)");
       expr = expr.replace(/¬\(([^()]+)∨([^()]+)\)/g, "(¬$1∧¬$2)");
-      expr = expr.replace(/¬¬([^()]+)/g, "$1");
+      expr = expr.replace(/¬\(\s*¬\s*([^()]+?)\s*\)/g, "$1");
+      expr = expr.replace(/¬¬\s*([^()]+)/g, "$1");
+      expr = expr.replace(/\(\s*([A-Za-z0-9]+)\s*\)/g, "$1");
     } while (expr !== prev);
     return expr;
   }
@@ -116,7 +118,5 @@ export default function toCNF(expression) {
   // Step 3: Distribute OR over AND
   expression = distributeOrOverAnd(expression);
 
-  console.log("Final CNF Expression:", expression);
-  
   return expression;
 }
