@@ -298,16 +298,13 @@ function astToStringWithMinimalBrackets(ast, parentPrecedence = 0) {
 export default function toCNF(expression) {
   // Step 1: Eliminate implications
   expression = eliminateImplicationsAndBiconditionals(expression);
-  console.log({ expression1: expression });
   // Step 2: Move NOTs inward
   const tokens = tokenize(expression);
   const ast = parseToAST(tokens);
   expression = exprToString(moveNotInward(ast));
-  console.log({ expression2: expression });
 
   // Step 3: Distribute OR over AND
   expression = distributeOrOverAnd(expression);
-  console.log({ expression3: expression });
 
   return removeUnnecessaryBrackets(expression);
 }

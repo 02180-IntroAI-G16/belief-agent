@@ -165,7 +165,6 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
           });
           updatedBeliefs = tempBeliefs;
           updatedBeliefs.push({ belief: newBelief, cnf: newBeliefInCNF });
-          console.log({ updatedBeliefs });
           steps.push(
             <h6 className="bg-green-200 p-2 rounded text-md">
               Added {newBelief} to the belief base.

@@ -24,7 +24,6 @@ export default function BeliefAgent() {
     setBeliefBase(updatedBeliefs);
     setRevisionSteps(steps);
   };
-  console.log({ beliefBase });
 
   const deleteBelief = (index) => {
     const updated = [...beliefBase];
