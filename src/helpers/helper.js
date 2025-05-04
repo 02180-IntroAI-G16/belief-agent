@@ -79,25 +79,18 @@ function isConsistent(allClauses) {
   return true; // no contradiction
 }
 
-const getBelief = (b) => b.map((be) => be.belief);
-
-const getCNF = (b) => b.map((be) => be.cnf);
-
 export const calculateBeliefBase = (beliefBase, newBelief) => {
   let steps = [];
-  let updatedBeliefs = beliefBase.map((belief) => ({
-    cnf: toCNF(belief),
-    belief,
-  }));
+  let updatedBeliefs = [...beliefBase];
   let newBeliefInCNF = toCNF(newBelief);
 
-  if (beliefBase.includes(newBeliefInCNF)) {
+  if (beliefBase.find(({ belief }) => belief === newBelief)) {
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
         Belief {newBeliefInCNF} already exists. No revision needed.
       </h6>
     );
-    return { updatedBeliefs: getBelief(updatedBeliefs), steps };
+    return { updatedBeliefs, steps };
   }
 
   const clauses = [];
@@ -108,13 +101,18 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
       clauses.push(...beliefClauses);
     });
 
-  if (isEntailed(getCNF(updatedBeliefs), newBeliefInCNF)) {
+  if (
+    isEntailed(
+      updatedBeliefs.map((b) => b.cnf),
+      newBeliefInCNF
+    )
+  ) {
     steps.push(
       <h6 className="bg-red-200 p-2 rounded text-md">
-        Belief {newBeliefInCNF} is already entailed by the belief base.
+        Belief {newBelief} is already entailed by the belief base.
       </h6>
     );
-    return { updatedBeliefs: getBelief(updatedBeliefs), steps };
+    return { updatedBeliefs, steps };
   }
 
   const newBeliefClauses = cnfToClauses(newBeliefInCNF);
@@ -146,7 +144,6 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
         const tempBeliefs = updatedBeliefs.filter(
           (b) => !combo.find((c) => c.cnf === b.cnf)
         );
-        console.log({ combo });
         const tempClauses = [];
         tempBeliefs.forEach((b) => tempClauses.push(...cnfToClauses(b.cnf)));
         const tempAllClauses = [
@@ -182,7 +179,7 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
       );
     }
   }
-  return { updatedBeliefs: getBelief(updatedBeliefs), steps };
+  return { updatedBeliefs, steps };
 };
 
 export function cnfToClauses(cnf) {

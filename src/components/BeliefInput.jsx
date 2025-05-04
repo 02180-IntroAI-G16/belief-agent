@@ -6,10 +6,10 @@ const propositionalSymbols = [
   { symbol: "∨", name: "Disjunction" },
   { symbol: "→", name: "Implication" },
   { symbol: "↔", name: "Biconditional" },
-  { symbol: "⊤", name: "Tautology" },
-  { symbol: "⊥", name: "Contradiction" },
-  { symbol: "⊢", name: "Entailment" },
-  { symbol: "⊨", name: "Semantic Entailment" },
+  // { symbol: "⊤", name: "Tautology" },
+  // { symbol: "⊥", name: "Contradiction" },
+  // { symbol: "⊢", name: "Entailment" },
+  // { symbol: "⊨", name: "Semantic Entailment" },
 ];
 
 const validSymbols = [
@@ -70,7 +70,7 @@ const BeliefInput = ({ handleAddNewBelief }) => {
         {propositionalSymbols.map((s) => (
           <div
             key={s.name}
-            className="rounded w-8 h-8 flex justify-center items-center cursor-pointer border-2 border-slate-400 hover:bg-slate-200"
+            className="rounded w-8 h-8 flex justify-center cursor-pointer border-2 border-slate-400 hover:bg-slate-200"
             onClick={() => addSymbol(s)}
           >
             <h6 className="mb-0">{s.symbol}</h6>

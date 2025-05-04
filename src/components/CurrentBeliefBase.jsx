@@ -10,7 +10,7 @@ const CurrentBeliefBase = ({ beliefBase = [], onDeleteBeliefBase }) => {
 
       <div className="mt-2 flex flex-col overflow-y-auto max-h-[500px]">
         {beliefBase.length ? (
-          beliefBase.map((belief, index) => {
+          beliefBase.map(({ belief }, index) => {
             return (
               <div
                 key={index}

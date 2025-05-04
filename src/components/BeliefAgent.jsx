@@ -29,7 +29,13 @@ export default function BeliefAgent() {
     const updated = [...beliefBase];
     const removed = updated.splice(index, 1);
     setBeliefBase(updated);
-    // setRevisionSteps([{ action: "delete", belief: removed[0] }]);
+    if (removed.length) {
+      setRevisionSteps([
+        <h6 className="bg-yellow-200 p-2 rounded text-md">
+          '{removed[0]?.belief}' removed from belief base.
+        </h6>,
+      ]);
+    }
   };
 
   return (
