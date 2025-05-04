@@ -135,19 +135,18 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
     );
 
     // Attempt to remove minimal sets of beliefs to restore consistency
-    const sortedBeliefs = updatedBeliefs
-      .map((be) => be.cnf)
-      .sort(
-        (a, b) =>
-          logicalStrengthEntrenchment(a) - logicalStrengthEntrenchment(b)
-      );
+    const sortedBeliefs = updatedBeliefs.sort(
+      (a, b) =>
+        logicalStrengthEntrenchment(a.cnf) - logicalStrengthEntrenchment(b.cnf)
+    );
 
     let resolved = false;
     for (let k = 1; k <= sortedBeliefs.length && !resolved; k++) {
       for (let combo of combinations(sortedBeliefs, k)) {
         const tempBeliefs = updatedBeliefs.filter(
-          (b) => !combo.includes(b.cnf)
+          (b) => !combo.find((c) => c.cnf === b.cnf)
         );
+        console.log({ combo });
         const tempClauses = [];
         tempBeliefs.forEach((b) => tempClauses.push(...cnfToClauses(b.cnf)));
         const tempAllClauses = [
@@ -156,7 +155,7 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
         ];
         if (isConsistent(tempAllClauses)) {
           // Report each removed belief
-          combo.forEach((belief) => {
+          combo.forEach(({ belief }) => {
             steps.push(
               <h6 className="bg-yellow-200 p-2 rounded text-md">
                 Removed {belief} to restore consistency.
