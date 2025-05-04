@@ -7,7 +7,7 @@ import { calculateBeliefBase } from "../helpers/helper";
 export default function BeliefAgent() {
   const [beliefBase, setBeliefBase] = useState(() => {
     const stored = localStorage.getItem("beliefBase");
-    return stored ? JSON.parse(stored) : ["A", "B", "C"];
+    return stored ? JSON.parse(stored) : [];
   });
   const [revisionSteps, setRevisionSteps] = useState([]);
 
