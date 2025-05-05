@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import BeliefInput from "./BeliefInput";
 import CurrentBeliefBase from "./CurrentBeliefBase";
 import RevisonSteps from "./RevisonSteps";
-import { calculateBeliefBase } from "../helpers/helper";
+import { calculateBeliefBase, believes } from "../helpers/helper";
+import BeliefQuery from "./BeliefQuery";
+import BeliefMessages from "./BeliefMessages";
 
 export default function BeliefAgent() {
   const [beliefBase, setBeliefBase] = useState(() => {
@@ -10,6 +12,7 @@ export default function BeliefAgent() {
     return stored ? JSON.parse(stored) : [];
   });
   const [revisionSteps, setRevisionSteps] = useState([]);
+  const [beliefMessages, setBeliefMessages] = useState([]);
 
   useEffect(() => {
     localStorage.setItem("beliefBase", JSON.stringify(beliefBase));
@@ -23,7 +26,17 @@ export default function BeliefAgent() {
 
     setBeliefBase(updatedBeliefs);
     setRevisionSteps(steps);
+    setBeliefMessages([]);
   };
+
+  const queryBelief = (belief) => {
+    const steps = [] = believes(
+      beliefBase,
+      belief
+    );
+    setBeliefMessages(steps);
+  }
+
 
   const deleteBelief = (index) => {
     const updated = [...beliefBase];
@@ -42,6 +55,8 @@ export default function BeliefAgent() {
     <div className="h-screen w-full p-4 sm:p-6 md:p-8 flex flex-col sm:flex-col md:flex-row gap-2">
       <div className="flex flex-col w-full md:w-1/2 gap-2">
         <BeliefInput handleAddNewBelief={addBelief} />
+        <BeliefQuery handleQueryBelief={queryBelief} />
+        <BeliefMessages beliefMessages={beliefMessages} />
         <RevisonSteps revisionSteps={revisionSteps} />
       </div>
 

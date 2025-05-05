@@ -225,3 +225,22 @@ function combinations(arr, k) {
   build(0, []);
   return result;
 }
+
+export function believes(beliefBase, belief) {
+  const steps = [];
+  if (isEntailed(beliefBase.map(b => b.cnf), belief)) {
+    steps.push(
+      <h6 className="bg-green-200 p-2 rounded text-md">
+        Belief {belief} is part of the belief set.
+      </h6>
+    ); 
+  }
+  else {
+    steps.push(
+      <h6 className="bg-red-200 p-2 rounded text-md">
+        Belief {belief} is NOT part of the belief set.
+      </h6>
+    );
+  }
+  return steps;
+}
