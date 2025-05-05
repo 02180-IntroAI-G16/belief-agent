@@ -1,22 +1,43 @@
 # Belief Revision Agent
 
-This is a simple belief revision agent implemented in React, based on AGM theory. It supports belief expansion, revision, and contraction using propositional logic.
+A simple React-based belief revision agent demonstrating the expansion, revision, and contraction of a belief base using propositional logic and AGM theory.
 
 ## Features
 
-- Input beliefs in propositional logic (e.g., `A→B`, `A∧B`)
-- Convert beliefs to Conjunctive Normal Form (CNF)
-- Store beliefs persistently in `localStorage`
-- Visualize belief base and revision steps
+- Add beliefs using propositional logic (`¬`, `∨`, `∧`, `→`, `↔`)
+- Converts beliefs to Conjunctive Normal Form (CNF)
+- Stores belief base in `localStorage`
+- Step-by-step revision visualization
 
-## Structure
+---
 
-- `BeliefAgent.js`: Main component handling logic and state
-- `helper.js`: Functions for belief revision logic
-- `toCNF.js`: Helper for converting formulas to CNF
-- Other components handle input, display, and user interaction
+## ⚠️ Input Guidelines
 
-## Run the App
+- Enter valid formulas without **any spaces**  
+  ✅ `A→B`  
+  ❌ `A → B`
+- Input validation is minimal — please double-check your formulas
+
+---
+
+## 🚀 Getting Started
+
+### 1. Install Node.js and npm
+
+If you don’t have Node.js installed:
+
+- Go to [https://nodejs.org](https://nodejs.org)
+- Download the **LTS version**
+- Install it — this will also install `npm` (Node Package Manager)
+
+You can verify the installation using:
+
+```bash
+node -v
+npm -v
+```
+
+### Run the App
 
 ```bash
 npm install
