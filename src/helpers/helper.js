@@ -172,9 +172,10 @@ export const calculateBeliefBase = (beliefBase, newBelief) => {
       }
     }
     if (!resolved) {
+      updatedBeliefs.push({ belief: newBelief, cnf: newBeliefInCNF });
       steps.push(
         <h6 className="bg-red-200 p-2 rounded text-md">
-          No resolution found. New belief not added.
+          No resolution found. New belief added, BE AWARE: beliefbase is now inconsistent.
         </h6>
       );
     }
